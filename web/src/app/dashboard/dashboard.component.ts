@@ -20,7 +20,7 @@ import { FormsModule } from '@angular/forms';
                    name="title" placeholder="What needs to be done?" autocomplete="off" />
           </div>
           <button type="submit" class="btn-primary" data-testid="todo-add"
-                  [disabled]="saving()">Add</button>
+                  [disabled]="saving() || !newTitle.trim()">Add</button>
           @if (error()) {
             <p class="form-error" role="alert">{{ error() }}</p>
           }
@@ -28,11 +28,12 @@ import { FormsModule } from '@angular/forms';
         <ul class="todo-list" data-testid="todo-list">
           @for (todo of todos(); track todo.id) {
             <li class="todo-item" data-testid="todo-item">{{ todo.title }}</li>
+          } @empty {
+            <li class="todo-empty-item">
+              <p class="placeholder-text" data-testid="todo-empty" style="margin:0">No tasks yet.</p>
+            </li>
           }
         </ul>
-        @if (loaded() && todos().length === 0) {
-          <p class="placeholder-text" data-testid="todo-empty">No tasks yet. Add your first one above.</p>
-        }
       </div>
     </div>
   `,
