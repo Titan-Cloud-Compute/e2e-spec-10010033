@@ -1,11 +1,18 @@
-import { Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router, Routes } from '@angular/router';
 import { authGuard, adminGuard } from './shared/auth.guards';
+import { AuthService } from './shared/auth.service';
+
+/** Signed-in visitors to "/" go straight to their to-do dashboard; anonymous visitors see the landing page. */
+const signedInHomeRedirect: CanActivateFn = () =>
+  inject(AuthService).isAuthenticated() ? inject(Router).createUrlTree(['/dashboard']) : true;
 
 export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./landing/landing.component').then(m => m.LandingComponent),
-    pathMatch: 'full'
+    pathMatch: 'full',
+    canActivate: [signedInHomeRedirect]
   },
   {
     path: 'login',

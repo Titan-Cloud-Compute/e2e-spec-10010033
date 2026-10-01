@@ -14,7 +14,7 @@ import { FormsModule } from '@angular/forms';
       </header>
       <div class="placeholder-card">
         <form class="placeholder-form" (ngSubmit)="addTodo()">
-          <div class="form-group">
+          <div class="form-group" data-testid="todo-input">
             <label for="todo-input">New task</label>
             <input type="text" id="todo-input" data-testid="todo-title-input" [(ngModel)]="newTitle"
                    name="title" placeholder="What needs to be done?" autocomplete="off" />
