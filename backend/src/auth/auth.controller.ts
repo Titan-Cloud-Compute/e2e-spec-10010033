@@ -63,13 +63,14 @@ export class AuthController {
 
   constructor(private readonly authService: AuthService) {}
 
-  @Public()
+  // admin_only auth model: no public self-signup. Only an ADMIN may create an
+  // account here, and the admin's own session is left untouched.
+  @RequireAdmin()
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
-  async signup(@Body() body: unknown, @Res({ passthrough: true }) res: Response) {
+  async signup(@Body() body: unknown) {
     const parsed = SignupSchema.parse(body);
-    const { user, token } = await this.authService.signup(parsed);
-    this.setSessionCookie(res, token);
+    const { user } = await this.authService.signup(parsed);
     return { id: user.id, email: user.email, role: user.role };
   }
 
