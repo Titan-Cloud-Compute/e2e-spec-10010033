@@ -53,6 +53,7 @@ model User {
   tokensCreated  RegistrationToken[] @relation("CreatedTokens")
   tokensConsumed RegistrationToken[] @relation("ConsumedTokens")
   passwordResetTokens PasswordResetToken[]
+  todos Todo[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -136,4 +137,19 @@ model ColossusAccount {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("colossus_accounts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// To-do items (story: add-todo) — owner-scoped per user
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Todo {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

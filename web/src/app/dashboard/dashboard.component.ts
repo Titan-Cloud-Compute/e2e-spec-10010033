@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { Todo, TodosService } from '../todos/todos.service';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -9,21 +10,29 @@ import { FormsModule } from '@angular/forms';
     <div class="dashboard-page" data-placeholder>
       <header class="page-header">
         <h1>Dashboard</h1>
-        <p class="subtitle">Welcome to the platform.</p>
+        <p class="subtitle">Your to-do list.</p>
       </header>
       <div class="placeholder-card">
-        <p class="placeholder-text">Your content will appear here.</p>
-        <form class="placeholder-form" (ngSubmit)="$event.preventDefault()">
+        <form class="placeholder-form" (ngSubmit)="addTodo()">
           <div class="form-group">
-            <label for="ph-field-1">Field 1</label>
-            <input type="text" id="ph-field-1" [(ngModel)]="field1" name="field1" placeholder="Enter value…" />
+            <label for="todo-input">New task</label>
+            <input type="text" id="todo-input" data-testid="todo-title-input" [(ngModel)]="newTitle"
+                   name="title" placeholder="What needs to be done?" autocomplete="off" />
           </div>
-          <div class="form-group">
-            <label for="ph-field-2">Field 2</label>
-            <input type="text" id="ph-field-2" [(ngModel)]="field2" name="field2" placeholder="Enter value…" />
-          </div>
-          <button type="submit" class="btn-primary" disabled>Submit</button>
+          <button type="submit" class="btn-primary" data-testid="todo-add"
+                  [disabled]="saving()">Add</button>
+          @if (error()) {
+            <p class="form-error" role="alert">{{ error() }}</p>
+          }
         </form>
+        <ul class="todo-list" data-testid="todo-list">
+          @for (todo of todos(); track todo.id) {
+            <li class="todo-item" data-testid="todo-item">{{ todo.title }}</li>
+          }
+        </ul>
+        @if (loaded() && todos().length === 0) {
+          <p class="placeholder-text" data-testid="todo-empty">No tasks yet. Add your first one above.</p>
+        }
       </div>
     </div>
   `,
@@ -54,7 +63,26 @@ import { FormsModule } from '@angular/forms';
     }
     .placeholder-text {
       color: var(--color-text-secondary);
-      margin: 0 0 1.5rem;
+      margin: 1rem 0 0;
+    }
+    .btn-primary:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .form-error {
+      color: var(--color-text-primary);
+      font-size: var(--font-size-sm);
+      margin: 0;
+    }
+    .todo-list {
+      list-style: none;
+      margin: 1.5rem 0 0;
+      padding: 0;
+    }
+    .todo-item {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-text-primary);
     }
     .placeholder-form {
       display: flex;
@@ -88,13 +116,50 @@ import { FormsModule } from '@angular/forms';
       background: var(--color-primary);
       border: none;
       border-radius: var(--radius-btn);
-      cursor: not-allowed;
-      opacity: 0.6;
+      cursor: pointer;
       min-height: 44px;
     }
   `]
 })
-export class DashboardComponent {
-  field1 = '';
-  field2 = '';
+export class DashboardComponent implements OnInit {
+  private todosApi = inject(TodosService);
+
+  todos = signal<Todo[]>([]);
+  loaded = signal(false);
+  saving = signal(false);
+  error = signal<string | null>(null);
+  newTitle = '';
+
+  async ngOnInit(): Promise<void> {
+    try {
+      const list = await this.todosApi.list();
+      this.todos.set(Array.isArray(list) ? list : []);
+    } catch {
+      this.error.set('Could not load your tasks.');
+    } finally {
+      this.loaded.set(true);
+    }
+  }
+
+  async addTodo(): Promise<void> {
+    const title = this.newTitle.trim();
+    if (!title) {
+      this.error.set('Please enter a task title.');
+      return;
+    }
+    this.error.set(null);
+    this.saving.set(true);
+    try {
+      const created = await this.todosApi.create(title);
+      const todo: Todo = created && typeof created === 'object' && 'id' in created
+        ? created
+        : { id: `local-${Date.now()}`, title, completed: false, createdAt: new Date().toISOString() };
+      this.todos.update((list) => [...list, { ...todo, title: todo.title || title }]);
+      this.newTitle = '';
+    } catch {
+      this.error.set('Could not add the task. Please try again.');
+    } finally {
+      this.saving.set(false);
+    }
+  }
 }
